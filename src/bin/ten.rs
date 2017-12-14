@@ -117,6 +117,12 @@ Treating your puzzle input as a string of ASCII characters, what is the Knot Has
 */
 
 fn solve_b(input: &str) -> String {
+    let xored = knot_hash(input);
+
+    xored.into_iter().map(|x| format!("{:02x}", x as u8)).collect()
+}
+
+pub fn knot_hash(input: &str) -> Vec<u8> {
     let mut list = (0..256).collect::<Vec<_>>();
     let mut skip = 0;
     let mut idx = 0;
@@ -132,9 +138,7 @@ fn solve_b(input: &str) -> String {
         }
     }
 
-    let xored = list.chunks(16).map(|chunk| chunk.into_iter().fold(0, |acc, x| acc ^ x));
-
-    xored.map(|x| format!("{:02x}", x as u8)).collect()
+    list.chunks(16).map(|chunk| chunk.into_iter().fold(0 as u8, |acc, x| acc ^ *x as u8)).collect()
 }
 
 #[test]
