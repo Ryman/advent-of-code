@@ -36,6 +36,7 @@ fn main() {
 
     input.read_to_string(&mut s).unwrap();
     println!("a: {}", solve_a(&s));
+    println!("b: {}", solve_b(&s));
 }
 
 fn solve_a(input: &str) -> u32 {
@@ -52,6 +53,32 @@ fn solve_a(input: &str) -> u32 {
     unreachable!()
 }
 
+/*
+--- Part Two ---
+
+The Elves in accounting are thankful for your help; one of them even offers you a starfish coin they had left over from a past vacation. They offer you a second one if you can find three numbers in your expense report that meet the same criteria.
+
+Using the above example again, the three entries that sum to 2020 are 979, 366, and 675. Multiplying them together produces the answer, 241861950.
+
+In your expense report, what is the product of the three entries that sum to 2020?
+*/
+
+fn solve_b(input: &str) -> u32 {
+    let numbers: Vec<u32> = input.lines().flat_map(|s| s.trim().parse().ok()).collect();
+
+    for (idx, a) in numbers.iter().enumerate() {
+        for (idx, b) in numbers.iter().skip(idx).enumerate() {
+            for c in numbers.iter().skip(idx) {
+                if a + b + c == 2020 {
+                    return a * b * c;
+                }
+            }
+        }
+    }
+
+    unreachable!()
+}
+
 #[test]
 fn smoke_a() {
     assert_eq!(solve_a("1721
@@ -60,4 +87,14 @@ fn smoke_a() {
                         299
                         675
                         1456"), 514579);
+}
+
+#[test]
+fn smoke_b() {
+    assert_eq!(solve_b("1721
+                        979
+                        366
+                        299
+                        675
+                        1456"), 241861950);
 }
