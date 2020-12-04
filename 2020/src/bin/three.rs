@@ -65,9 +65,10 @@ fn main() {
 
     input.read_to_string(&mut s).unwrap();
     println!("a: {}", solve_a(&s));
+    println!("b: {}", solve_b(&s));
 }
 
-fn solve_a(input: &str) -> usize {
+fn solve(input: &str, dx: usize, dy: usize) -> usize {
     let tree_map: Vec<Vec<bool>> = input.lines().map(|line| {
         line.trim().chars().map(|c| c == '#').collect()
     }).collect();
@@ -77,15 +78,45 @@ fn solve_a(input: &str) -> usize {
     let mut trees_hit = 0;
 
     loop {
-        x += 3;
-        y += 1;
+        x += dx;
+        y += dy;
 
-        if y == rows { return trees_hit }
+        if y >= rows { return trees_hit }
 
         if tree_map[y][x % columns] {
             trees_hit += 1;
         }
     }
+}
+
+fn solve_a(input: &str) -> usize {
+    solve(input, 3, 1)
+}
+
+/*
+--- Part Two ---
+
+Time to check the rest of the slopes - you need to minimize the probability of a sudden arboreal stop, after all.
+
+Determine the number of trees you would encounter if, for each of the following slopes, you start at the top-left corner and traverse the map all the way to the bottom:
+
+    Right 1, down 1.
+    Right 3, down 1. (This is the slope you already checked.)
+    Right 5, down 1.
+    Right 7, down 1.
+    Right 1, down 2.
+
+In the above example, these slopes would find 2, 7, 3, 4, and 2 tree(s) respectively; multiplied together, these produce the answer 336.
+
+What do you get if you multiply together the number of trees encountered on each of the listed slopes?
+*/
+
+fn solve_b(input: &str) -> usize {
+    solve(input, 1, 1) *
+    solve(input, 3, 1) *
+    solve(input, 5, 1) *
+    solve(input, 7, 1) *
+    solve(input, 1, 2)
 }
 
 #[test]
@@ -101,4 +132,19 @@ fn smoke_a() {
                         #.##...#...
                         #...##....#
                         .#..#...#.#"), 7);
+}
+
+#[test]
+fn smoke_b() {
+    assert_eq!(solve_b("..##.......
+                        #...#...#..
+                        .#....#..#.
+                        ..#.#...#.#
+                        .#...##..#.
+                        ..#.##.....
+                        .#.#.#....#
+                        .#........#
+                        #.##...#...
+                        #...##....#
+                        .#..#...#.#"), 336);
 }
