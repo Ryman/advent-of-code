@@ -116,15 +116,11 @@ fn solve_b(input: &str) -> usize {
     let mut seats = ids.into_iter();
     let mut last = seats.next().unwrap();
 
-    for current in seats {
-        if current != last + 1 {
-            return last + 1;
-        }
-
-        last = current;
+    while seats.next() == Some(last + 1) {
+        last += 1;
     }
 
-    unreachable!()
+    last + 1
 }
 
 #[test]
