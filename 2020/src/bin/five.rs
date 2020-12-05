@@ -52,6 +52,7 @@ fn main() {
 
     input.read_to_string(&mut s).unwrap();
     println!("a: {}", solve_a(&s));
+    println!("b: {}", solve_b(&s));
 }
 
 fn find_seat(boarding_pass: &str) -> (usize, usize) {
@@ -82,13 +83,47 @@ fn find_seat(boarding_pass: &str) -> (usize, usize) {
     (row_min, column_min)
 }
 
+fn seat_id((row, column): (usize, usize)) -> usize {
+    row * 8 + column
+}
+
 fn solve_a(input: &str) -> usize {
     input.lines().filter(|s| !s.is_empty())
-        .map(|boarding_pass| {
-            let(row, column) = find_seat(boarding_pass);
+        .map(|boarding_pass| seat_id(find_seat(boarding_pass)))
+        .max().unwrap()
+}
 
-            row * 8 + column
-        }).max().unwrap()
+/*
+--- Part Two ---
+
+Ding! The "fasten seat belt" signs have turned on. Time to find your seat.
+
+It's a completely full flight, so your seat should be the only missing boarding pass in your list. However, there's a catch: some of the seats at the very front and back of the plane don't exist on this aircraft, so they'll be missing from your list as well.
+
+Your seat wasn't at the very front or back, though; the seats with IDs +1 and -1 from yours will be in your list.
+
+What is the ID of your seat?
+*/
+
+fn solve_b(input: &str) -> usize {
+    let mut ids = input.lines().filter(|s| !s.is_empty())
+        .map(|boarding_pass| seat_id(find_seat(boarding_pass)))
+        .collect::<Vec<_>>();
+
+    ids.sort();
+
+    let mut seats = ids.into_iter();
+    let mut last = seats.next().unwrap();
+
+    for current in seats {
+        if current != last + 1 {
+            return last + 1;
+        }
+
+        last = current;
+    }
+
+    unreachable!()
 }
 
 #[test]
@@ -105,4 +140,23 @@ fn smoke_a() {
     assert_eq!(solve_a("BFFFBBFRRR
                         FFFBBBFRRR
                         BBFFBBFRLL"), 820);
+}
+
+#[test]
+fn smoke_b() {
+    assert_eq!(solve_b("BBBFFFFLRR
+                        BBBFFFFRLL
+                        BBBFFFFRLR
+                        BBBFFFFRRL
+                        BBBFFFBLLL
+                        BBBFFFBLLR
+                        BBBFFFBLRL"), 903);
+
+    assert_eq!(solve_b("BBBFFFFLRR
+                        BBBFFFBLLL
+                        BBBFFFFRLL
+                        BBBFFFBLLR
+                        BBBFFFFRLR
+                        BBBFFFFRRL
+                        BBBFFFBLRL"), 903)
 }
