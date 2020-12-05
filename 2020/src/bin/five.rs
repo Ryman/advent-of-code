@@ -58,29 +58,23 @@ fn main() {
 fn find_seat(boarding_pass: &str) -> (usize, usize) {
     let boarding_pass = boarding_pass.trim();
 
-    let (mut row_min, mut row_max) = (0, 127);
-    for c in boarding_pass[0..7].chars() {
-        if c == 'F' {
-            row_max = (row_min + row_max) / 2;
-        } else {
-            row_min = 1 + ((row_min + row_max) / 2);
+    let search = |mut min, mut max, low_matcher, source: &str| {
+        for c in source.chars() {
+            let mid = (min + max) / 2;
+
+            if c == low_matcher {
+                max = mid;
+            } else {
+                min = 1 + mid;
+            }
         }
-    }
 
-    assert_eq!(row_min, row_max);
+        assert_eq!(min, max);
 
-    let (mut column_min, mut column_max) = (0, 7);
-    for c in boarding_pass[7..10].chars() {
-        if c == 'L' {
-            column_max = (column_min + column_max) / 2;
-        } else {
-            column_min = 1 + ((column_min + column_max) / 2);
-        }
-    }
+        min
+    };
 
-    assert_eq!(column_min, column_max);
-
-    (row_min, column_min)
+    (search(0, 127, 'F', &boarding_pass[0..7]), search(0, 7, 'L', &boarding_pass[7..]))
 }
 
 fn seat_id((row, column): (usize, usize)) -> usize {
