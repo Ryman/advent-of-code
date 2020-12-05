@@ -87,10 +87,13 @@ fn seat_id((row, column): (usize, usize)) -> usize {
     row * 8 + column
 }
 
-fn solve_a(input: &str) -> usize {
+fn parse_boarding_passes(input: &str) -> impl Iterator<Item = usize> + '_ {
     input.lines().filter(|s| !s.is_empty())
         .map(|boarding_pass| seat_id(find_seat(boarding_pass)))
-        .max().unwrap()
+}
+
+fn solve_a(input: &str) -> usize {
+    parse_boarding_passes(input).max().unwrap()
 }
 
 /*
@@ -106,9 +109,7 @@ What is the ID of your seat?
 */
 
 fn solve_b(input: &str) -> usize {
-    let mut ids = input.lines().filter(|s| !s.is_empty())
-        .map(|boarding_pass| seat_id(find_seat(boarding_pass)))
-        .collect::<Vec<_>>();
+    let mut ids = parse_boarding_passes(input).collect::<Vec<_>>();
 
     ids.sort();
 
