@@ -94,7 +94,7 @@ fn run_machine(instructions: &[Instruction]) -> (bool, isize) {
     let mut acc: isize = 0;
 
     loop {
-        println!("Executing[{}] {:?}: {}", index, instructions.get(index as usize), acc);
+        // println!("Executing[{}] {:?}: {}", index, instructions.get(index as usize), acc);
 
         match visited.get_mut(index as usize) {
             Some(true) => return (false, acc),
