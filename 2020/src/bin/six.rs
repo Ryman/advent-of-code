@@ -47,7 +47,7 @@ extern crate text_io;
 
 use std::io::Read;
 use std::fs::File;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
 fn main() {
     let mut input = File::open("inputs/six.txt").unwrap();
@@ -55,12 +55,72 @@ fn main() {
 
     input.read_to_string(&mut s).unwrap();
     println!("a: {}", solve_a(&s));
+    println!("b: {}", solve_b(&s));
 }
 
 fn solve_a(input: &str) -> usize {
     input.split("\n\n").map(|group| {
-        let mut set: HashSet<char> = group.chars().filter(|c| !c.is_whitespace()).collect();
+        let set: HashSet<char> = group.chars().filter(|c| !c.is_whitespace()).collect();
         set.len()
+    }).sum()
+}
+
+/*
+--- Part Two ---
+
+As you finish the last group's customs declaration, you notice that you misread one word in the instructions:
+
+You don't need to identify the questions to which anyone answered "yes"; you need to identify the questions to which everyone answered "yes"!
+
+Using the same example as above:
+
+abc
+
+a
+b
+c
+
+ab
+ac
+
+a
+a
+a
+a
+
+b
+
+This list represents answers from five groups:
+
+    In the first group, everyone (all 1 person) answered "yes" to 3 questions: a, b, and c.
+    In the second group, there is no question to which everyone answered "yes".
+    In the third group, everyone answered yes to only 1 question, a. Since some people did not answer "yes" to b or c, they don't count.
+    In the fourth group, everyone answered yes to only 1 question, a.
+    In the fifth group, everyone (all 1 person) answered "yes" to 1 question, b.
+
+In this example, the sum of these counts is 3 + 0 + 1 + 1 + 1 = 6.
+
+For each group, count the number of questions to which everyone answered "yes". What is the sum of those counts?
+*/
+
+fn solve_b(input: &str) -> usize {
+    input.split("\n\n").map(|group| {
+        let mut voters = 0;
+        let mut map = HashMap::<char, usize>::new();
+
+        for voter in group.lines().filter(|line| !line.is_empty()) {
+            let mut chars: Vec<_> = voter.chars().filter(|c| !c.is_whitespace()).collect();
+            chars.sort();
+            chars.dedup();
+
+            for c in chars {
+                *map.entry(c).or_default() += 1;
+            }
+
+            voters += 1;
+        }
+
+        map.into_iter().filter(|(_c, count)| *count == voters).count()
     }).sum()
 }
 
@@ -81,4 +141,23 @@ fn smoke_a() {
                         a
 
                         b"), 11);
+}
+
+#[test]
+fn smoke_b() {
+    assert_eq!(solve_b("abc
+
+                        a
+                        b
+                        c
+
+                        ab
+                        ac
+
+                        a
+                        a
+                        a
+                        a
+
+                        b"), 6);
 }
