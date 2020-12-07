@@ -59,6 +59,7 @@ fn main() {
 
     input.read_to_string(&mut s).unwrap();
     println!("a: {}", solve_a(&s, 25));
+    println!("b: {}", solve_b(&s, 25));
 }
 
 fn solve_a(input: &str, preamble_len: usize) -> usize {
@@ -83,6 +84,67 @@ fn solve_a(input: &str, preamble_len: usize) -> usize {
 
         preamble.pop_front();
         preamble.push_back(x);
+    }
+
+    unreachable!()
+}
+
+/*
+--- Part Two ---
+
+The final step in breaking the XMAS encryption relies on the invalid number you just found: you must find a contiguous set of at least two numbers in your list which sum to the invalid number from step 1.
+
+Again consider the above example:
+
+35
+20
+15
+25
+47
+40
+62
+55
+65
+95
+102
+117
+150
+182
+127
+219
+299
+277
+309
+576
+
+In this list, adding up all of the numbers from 15 through 40 produces the invalid number from step 1, 127. (Of course, the contiguous set of numbers in your actual list might be much longer.)
+
+To find the encryption weakness, add together the smallest and largest number in this contiguous range; in this example, these are 15 and 47, producing 62.
+
+What is the encryption weakness in your XMAS-encrypted list of numbers?
+*/
+
+fn solve_b(input: &str, preamble_len: usize) -> usize {
+    let inputs = input.lines().filter_map(|s| s.trim().parse::<usize>().ok()).collect::<Vec<_>>();
+    let invalid_number = solve_a(input, preamble_len);
+
+    for (start, &a) in inputs.iter().enumerate() {
+        let mut sum = a;
+
+        for (offset, &b) in inputs.iter().skip(start + 1).enumerate() {
+            sum += b;
+
+            if offset > 0 && sum == invalid_number {
+                let end = start + offset;
+                let values = &inputs[start..=end];
+                let min = values.iter().min().unwrap();
+                let max = values.iter().max().unwrap();
+
+                return min + max
+            } else if sum > invalid_number {
+                break
+            }
+        }
     }
 
     unreachable!()
@@ -163,4 +225,28 @@ fn smoke_a() {
                         25
                         50
                         100", 25), 50);
+}
+
+#[test]
+fn smoke_b() {
+    assert_eq!(solve_b("35
+                        20
+                        15
+                        25
+                        47
+                        40
+                        62
+                        55
+                        65
+                        95
+                        102
+                        117
+                        150
+                        182
+                        127
+                        219
+                        299
+                        277
+                        309
+                        576", 5), 62);
 }
