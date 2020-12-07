@@ -45,10 +45,13 @@ fn main() {
 
     input.read_to_string(&mut s).unwrap();
     println!("a: {}", solve_a(&s));
+    println!("b: {}", solve_b(&s));
 }
 
-fn solve_a(input: &str) -> usize {
-    let map = input.lines()
+type BagMap = HashMap<String, Vec<(usize, String)>>;
+
+fn parse_rules(input: &str) -> BagMap {
+    input.lines()
         .filter(|line| !line.is_empty())
         .map(|line| {
             // println!("Checking {}", line.trim());
@@ -75,15 +78,61 @@ fn solve_a(input: &str) -> usize {
                 .collect::<Vec<_>>();
 
             (name, inside)
-        }).collect::<HashMap<String, _>>();
+        }).collect()
+}
 
-    fn has_shiny_gold(map: &HashMap<String, Vec<(usize, String)>>, starting_key: &str) -> bool {
+fn solve_a(input: &str) -> usize {
+    fn has_shiny_gold(map: &BagMap, starting_key: &str) -> bool {
         map[starting_key].iter().any(|(_, bag_type)| {
             bag_type == "shiny gold" || has_shiny_gold(map, bag_type)
         })
     }
 
+    let map = parse_rules(input);
     map.keys().filter(|key| has_shiny_gold(&map, key)).count()
+}
+
+/*
+--- Part Two ---
+
+It's getting pretty expensive to fly these days - not because of ticket prices, but because of the ridiculous number of bags you need to buy!
+
+Consider again your shiny gold bag and the rules from the above example:
+
+    faded blue bags contain 0 other bags.
+    dotted black bags contain 0 other bags.
+    vibrant plum bags contain 11 other bags: 5 faded blue bags and 6 dotted black bags.
+    dark olive bags contain 7 other bags: 3 faded blue bags and 4 dotted black bags.
+
+So, a single shiny gold bag must contain 1 dark olive bag (and the 7 bags within it) plus 2 vibrant plum bags (and the 11 bags within each of those): 1 + 1*7 + 2 + 2*11 = 32 bags!
+
+Of course, the actual rules have a small chance of going several levels deeper than this example; be sure to count all of the bags, even if the nesting becomes topologically impractical!
+
+Here's another example:
+
+shiny gold bags contain 2 dark red bags.
+dark red bags contain 2 dark orange bags.
+dark orange bags contain 2 dark yellow bags.
+dark yellow bags contain 2 dark green bags.
+dark green bags contain 2 dark blue bags.
+dark blue bags contain 2 dark violet bags.
+dark violet bags contain no other bags.
+
+In this example, a single shiny gold bag must contain 126 other bags.
+
+How many individual bags are required inside your single shiny gold bag?
+*/
+
+fn solve_b(input: &str) -> usize {
+    fn count(map: &BagMap, starting_key: &str) -> usize {
+        map[starting_key].iter().fold(0, |total, (n, bag_type)| {
+            total + n + n * count(map, bag_type)
+        })
+    }
+
+    let map = parse_rules(input);
+
+    count(&map, "shiny gold")
 }
 
 #[test]
@@ -97,4 +146,28 @@ fn smoke_a() {
                         vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
                         faded blue bags contain no other bags.
                         dotted black bags contain no other bags."), 4);
+}
+
+#[test]
+fn smoke_b() {
+    assert_eq!(solve_b("light red bags contain 1 bright white bag, 2 muted yellow bags.
+                        dark orange bags contain 3 bright white bags, 4 muted yellow bags.
+                        bright white bags contain 1 shiny gold bag.
+                        muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
+                        shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
+                        dark olive bags contain 3 faded blue bags, 4 dotted black bags.
+                        vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
+                        faded blue bags contain no other bags.
+                        dotted black bags contain no other bags."), 32);
+}
+
+#[test]
+fn smoke_b_2() {
+    assert_eq!(solve_b("shiny gold bags contain 2 dark red bags.
+                        dark red bags contain 2 dark orange bags.
+                        dark orange bags contain 2 dark yellow bags.
+                        dark yellow bags contain 2 dark green bags.
+                        dark green bags contain 2 dark blue bags.
+                        dark blue bags contain 2 dark violet bags.
+                        dark violet bags contain no other bags."), 126);
 }
