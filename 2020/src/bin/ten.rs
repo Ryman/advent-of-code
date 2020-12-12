@@ -86,6 +86,7 @@ Find a chain that uses all of your adapters to connect the charging outlet to yo
 */
 use std::io::Read;
 use std::fs::File;
+use std::collections::HashMap;
 
 fn main() {
     let mut input = File::open("inputs/ten.txt").unwrap();
@@ -93,9 +94,10 @@ fn main() {
 
     input.read_to_string(&mut s).unwrap();
     println!("a: {}", solve_a(&s));
+    println!("b: {}", solve_b(&s));
 }
 
-fn solve_a(input: &str) -> usize {
+fn get_counts(input: &str) -> [usize; 4] {
     let mut adapters: Vec<usize> = input.lines().filter_map(|line| line.trim().parse().ok()).collect();
 
     adapters.sort();
@@ -114,7 +116,110 @@ fn solve_a(input: &str) -> usize {
     counts[last] += 1;
 
     assert_eq!(counts[0], 0);
-    counts[3] * counts[1]
+
+    counts
+}
+
+fn solve_a(input: &str) -> usize {
+    let [_, ones, _, threes] = get_counts(input);
+
+    ones * threes
+}
+
+/*
+--- Part Two ---
+
+To completely determine whether you have enough adapters, you'll need to figure out how many different ways they can be arranged. Every arrangement needs to connect the charging outlet to your device. The previous rules about when adapters can successfully connect still apply.
+
+The first example above (the one that starts with 16, 10, 15) supports the following arrangements:
+
+(0), 1, 4, 5, 6, 7, 10, 11, 12, 15, 16, 19, (22)
+(0), 1, 4, 5, 6, 7, 10, 12, 15, 16, 19, (22)
+(0), 1, 4, 5, 7, 10, 11, 12, 15, 16, 19, (22)
+(0), 1, 4, 5, 7, 10, 12, 15, 16, 19, (22)
+(0), 1, 4, 6, 7, 10, 11, 12, 15, 16, 19, (22)
+(0), 1, 4, 6, 7, 10, 12, 15, 16, 19, (22)
+(0), 1, 4, 7, 10, 11, 12, 15, 16, 19, (22)
+(0), 1, 4, 7, 10, 12, 15, 16, 19, (22)
+
+(The charging outlet and your device's built-in adapter are shown in parentheses.) Given the adapters from the first example, the total number of arrangements that connect the charging outlet to your device is 8.
+
+The second example above (the one that starts with 28, 33, 18) has many arrangements. Here are a few:
+
+(0), 1, 2, 3, 4, 7, 8, 9, 10, 11, 14, 17, 18, 19, 20, 23, 24, 25, 28, 31,
+32, 33, 34, 35, 38, 39, 42, 45, 46, 47, 48, 49, (52)
+
+(0), 1, 2, 3, 4, 7, 8, 9, 10, 11, 14, 17, 18, 19, 20, 23, 24, 25, 28, 31,
+32, 33, 34, 35, 38, 39, 42, 45, 46, 47, 49, (52)
+
+(0), 1, 2, 3, 4, 7, 8, 9, 10, 11, 14, 17, 18, 19, 20, 23, 24, 25, 28, 31,
+32, 33, 34, 35, 38, 39, 42, 45, 46, 48, 49, (52)
+
+(0), 1, 2, 3, 4, 7, 8, 9, 10, 11, 14, 17, 18, 19, 20, 23, 24, 25, 28, 31,
+32, 33, 34, 35, 38, 39, 42, 45, 46, 49, (52)
+
+(0), 1, 2, 3, 4, 7, 8, 9, 10, 11, 14, 17, 18, 19, 20, 23, 24, 25, 28, 31,
+32, 33, 34, 35, 38, 39, 42, 45, 47, 48, 49, (52)
+
+(0), 3, 4, 7, 10, 11, 14, 17, 20, 23, 25, 28, 31, 34, 35, 38, 39, 42, 45,
+46, 48, 49, (52)
+
+(0), 3, 4, 7, 10, 11, 14, 17, 20, 23, 25, 28, 31, 34, 35, 38, 39, 42, 45,
+46, 49, (52)
+
+(0), 3, 4, 7, 10, 11, 14, 17, 20, 23, 25, 28, 31, 34, 35, 38, 39, 42, 45,
+47, 48, 49, (52)
+
+(0), 3, 4, 7, 10, 11, 14, 17, 20, 23, 25, 28, 31, 34, 35, 38, 39, 42, 45,
+47, 49, (52)
+
+(0), 3, 4, 7, 10, 11, 14, 17, 20, 23, 25, 28, 31, 34, 35, 38, 39, 42, 45,
+48, 49, (52)
+
+In total, this set of adapters can connect the charging outlet to your device in 19208 distinct arrangements.
+
+You glance back down at your bag and try to remember why you brought so many adapters; there must be more than a trillion valid ways to arrange them! Surely, there must be an efficient way to count the arrangements.
+
+What is the total number of distinct ways you can arrange the adapters to connect the charging outlet to your device?
+*/
+
+fn solve_b(input: &str) -> isize {
+    let mut adapters: Vec<isize> = input.lines().filter_map(|line| line.trim().parse().ok()).collect();
+
+    adapters.sort();
+
+    let max = adapters.last().cloned().unwrap();
+
+    fn count_finished(expect: isize, adapters: &[isize], cache: &mut HashMap<(isize, Vec<isize>), isize>) -> isize {
+        if let Some(&result) = cache.get(&(expect, adapters.into())) {
+            return result
+        }
+
+        match adapters.split_last() {
+            None => (expect <= 3) as _,
+            Some((&current, [])) => (current == expect || expect == 0) as _,
+            Some((&current, rest)) => {
+                if current != expect { return 0 }
+
+                let mut count = 0;
+                for n in 0..=2 {
+                    if rest.len() <= n { break }
+                    let next = &rest[0..rest.len() - n];
+
+                    count += count_finished(current - 1, next, cache) +
+                    count_finished(current - 2, next, cache) +
+                    count_finished(current - 3, next, cache);
+                }
+
+                cache.insert((expect, adapters.into()), count);
+
+                count
+            }
+        }
+    }
+
+    let mut cache = HashMap::new();
+    count_finished(max, &adapters, &mut cache)
 }
 
 #[test]
@@ -162,4 +267,51 @@ fn smoke_a() {
                         34
                         10
                         3"), 220);
+}
+
+#[test]
+fn smoke_b() {
+    assert_eq!(solve_b("16
+                        10
+                        15
+                        5
+                        1
+                        11
+                        7
+                        19
+                        6
+                        12
+                        4"), 8);
+
+    assert_eq!(solve_b("28
+                        33
+                        18
+                        42
+                        31
+                        14
+                        46
+                        20
+                        48
+                        47
+                        24
+                        23
+                        49
+                        45
+                        19
+                        38
+                        39
+                        11
+                        1
+                        32
+                        25
+                        35
+                        8
+                        17
+                        7
+                        9
+                        4
+                        2
+                        34
+                        10
+                        3"), 19208);
 }
