@@ -100,6 +100,7 @@ fn main() {
 
     input.read_to_string(&mut s).unwrap();
     println!("a: {}", solve_a(&s));
+    println!("b: {}", solve_b(&s));
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -123,7 +124,7 @@ fn layout(input: &str) -> PlaneState {
     }).collect()
 }
 
-fn simulate(state: &PlaneState) -> PlaneState {
+fn simulate_a(state: &PlaneState) -> PlaneState {
     let mut next = state.clone();
 
     for x in 0..state.len() as isize {
@@ -157,7 +158,185 @@ fn solve_a(input: &str) -> usize {
     let mut current = layout(input);
 
     loop {
-        let next = simulate(&current);
+        let next = simulate_a(&current);
+
+        if next == current {
+            return current.iter().map(|row| {
+                row.iter().filter(|&&seat| seat == TileType::Seat(true)).count()
+            }).sum()
+        }
+
+        current = next;
+    }
+}
+
+/*
+--- Part Two ---
+
+As soon as people start to arrive, you realize your mistake. People don't just care about adjacent seats - they care about the first seat they can see in each of those eight directions!
+
+Now, instead of considering just the eight immediately adjacent seats, consider the first seat in each of those eight directions. For example, the empty seat below would see eight occupied seats:
+
+.......#.
+...#.....
+.#.......
+.........
+..#L....#
+....#....
+.........
+#........
+...#.....
+
+The leftmost empty seat below would only see one empty seat, but cannot see any of the occupied ones:
+
+.............
+.L.L.#.#.#.#.
+.............
+
+The empty seat below would see no occupied seats:
+
+.##.##.
+#.#.#.#
+##...##
+...L...
+##...##
+#.#.#.#
+.##.##.
+
+Also, people seem to be more tolerant than you expected: it now takes five or more visible occupied seats for an occupied seat to become empty (rather than four or more from the previous rules). The other rules still apply: empty seats that see no occupied seats become occupied, seats matching no rule don't change, and floor never changes.
+
+Given the same starting layout as above, these new rules cause the seating area to shift around as follows:
+
+L.LL.LL.LL
+LLLLLLL.LL
+L.L.L..L..
+LLLL.LL.LL
+L.LL.LL.LL
+L.LLLLL.LL
+..L.L.....
+LLLLLLLLLL
+L.LLLLLL.L
+L.LLLLL.LL
+
+#.##.##.##
+#######.##
+#.#.#..#..
+####.##.##
+#.##.##.##
+#.#####.##
+..#.#.....
+##########
+#.######.#
+#.#####.##
+
+#.LL.LL.L#
+#LLLLLL.LL
+L.L.L..L..
+LLLL.LL.LL
+L.LL.LL.LL
+L.LLLLL.LL
+..L.L.....
+LLLLLLLLL#
+#.LLLLLL.L
+#.LLLLL.L#
+
+#.L#.##.L#
+#L#####.LL
+L.#.#..#..
+##L#.##.##
+#.##.#L.##
+#.#####.#L
+..#.#.....
+LLL####LL#
+#.L#####.L
+#.L####.L#
+
+#.L#.L#.L#
+#LLLLLL.LL
+L.L.L..#..
+##LL.LL.L#
+L.LL.LL.L#
+#.LLLLL.LL
+..L.L.....
+LLLLLLLLL#
+#.LLLLL#.L
+#.L#LL#.L#
+
+#.L#.L#.L#
+#LLLLLL.LL
+L.L.L..#..
+##L#.#L.L#
+L.L#.#L.L#
+#.L####.LL
+..#.#.....
+LLL###LLL#
+#.LLLLL#.L
+#.L#LL#.L#
+
+#.L#.L#.L#
+#LLLLLL.LL
+L.L.L..#..
+##L#.#L.L#
+L.L#.LL.L#
+#.LLLL#.LL
+..#.L.....
+LLL###LLL#
+#.LLLLL#.L
+#.L#LL#.L#
+
+Again, at this point, people stop shifting around and the seating area reaches equilibrium. Once this occurs, you count 26 occupied seats.
+
+Given the new visibility method and the rule change for occupied seats becoming empty, once equilibrium is reached, how many seats end up occupied?
+*/
+
+fn simulate_b(state: &PlaneState) -> PlaneState {
+    let mut next = state.clone();
+
+    fn find_next_seat(map: &PlaneState, (mut x, mut y): (isize, isize), (dx, dy): (isize, isize)) -> Option<TileType> {
+        loop {
+            x += dx;
+            y += dy;
+
+            match map.get(x as usize).and_then(|row| row.get(y as usize)) {
+                Some(seat @ TileType::Seat(_)) => return Some(*seat),
+                None => return None,
+                Some(_) => continue,
+            }
+        }
+    }
+
+    for x in 0..state.len() as isize {
+        for y in 0..state[x as usize].len() as isize{
+            let occupied = vec![
+                (-1, -1),
+                (-1, 0),
+                (-1, 1),
+                (0, -1),
+                (0, 1),
+                (1, -1),
+                (1, 0),
+                (1, 1)
+            ].into_iter()
+            .map(|(dx, dy)| find_next_seat(state, (x, y), (dx, dy)))
+            .filter(|state| *state == Some(TileType::Seat(true)))
+            .count();
+
+            next[x as usize][y as usize] = match state[x as usize][y as usize] {
+                TileType::Seat(false) if occupied == 0 => TileType::Seat(true),
+                TileType::Seat(true) if occupied >= 5 => TileType::Seat(false),
+                current => current
+            };
+        }
+    }
+
+    next
+}
+
+fn solve_b(input: &str) -> usize {
+    let mut current = layout(input);
+
+    loop {
+        let next = simulate_b(&current);
 
         if next == current {
             return current.iter().map(|row| {
@@ -170,10 +349,10 @@ fn solve_a(input: &str) -> usize {
 }
 
 #[test]
-fn test_simulate() {
+fn test_simulate_a() {
     println!("one");
     assert_eq!(
-        simulate(
+        simulate_a(
             &layout(
                 "L.LL.LL.LL
                 LLLLLLL.LL
@@ -203,7 +382,7 @@ fn test_simulate() {
 
     println!("two");
     assert_eq!(
-        simulate(
+        simulate_a(
             &layout(
                 "#.##.##.##
                 #######.##
@@ -233,7 +412,7 @@ fn test_simulate() {
 
     println!("three");
     assert_eq!(
-        simulate(
+        simulate_a(
             &layout(
                 "#.LL.L#.##
                 #LLLLLL.L#
@@ -263,7 +442,7 @@ fn test_simulate() {
 
     println!("four");
     assert_eq!(
-        simulate(
+        simulate_a(
             &layout(
                 "#.##.L#.##
                 #L###LL.L#
@@ -304,4 +483,141 @@ fn smoke_a() {
                         LLLLLLLLLL
                         L.LLLLLL.L
                         L.LLLLL.LL"), 37);
+}
+
+#[test]
+fn test_simulate_b() {
+    println!("one");
+    assert_eq!(
+        simulate_b(
+            &layout(
+                "L.LL.LL.LL
+                LLLLLLL.LL
+                L.L.L..L..
+                LLLL.LL.LL
+                L.LL.LL.LL
+                L.LLLLL.LL
+                ..L.L.....
+                LLLLLLLLLL
+                L.LLLLLL.L
+                L.LLLLL.LL"
+            )
+        ),
+        layout(
+            "#.##.##.##
+            #######.##
+            #.#.#..#..
+            ####.##.##
+            #.##.##.##
+            #.#####.##
+            ..#.#.....
+            ##########
+            #.######.#
+            #.#####.##"
+        )
+    );
+
+    println!("two");
+    assert_eq!(
+        simulate_b(
+            &layout(
+                "#.##.##.##
+                #######.##
+                #.#.#..#..
+                ####.##.##
+                #.##.##.##
+                #.#####.##
+                ..#.#.....
+                ##########
+                #.######.#
+                #.#####.##"
+            )
+        ),
+        layout(
+            "#.LL.LL.L#
+            #LLLLLL.LL
+            L.L.L..L..
+            LLLL.LL.LL
+            L.LL.LL.LL
+            L.LLLLL.LL
+            ..L.L.....
+            LLLLLLLLL#
+            #.LLLLLL.L
+            #.LLLLL.L#"
+        )
+    );
+
+    println!("three");
+    assert_eq!(
+        simulate_b(
+            &layout(
+                "#.LL.LL.L#
+                #LLLLLL.LL
+                L.L.L..L..
+                LLLL.LL.LL
+                L.LL.LL.LL
+                L.LLLLL.LL
+                ..L.L.....
+                LLLLLLLLL#
+                #.LLLLLL.L
+                #.LLLLL.L#"
+            )
+        ),
+        layout(
+            "#.L#.##.L#
+            #L#####.LL
+            L.#.#..#..
+            ##L#.##.##
+            #.##.#L.##
+            #.#####.#L
+            ..#.#.....
+            LLL####LL#
+            #.L#####.L
+            #.L####.L#"
+        )
+    );
+
+    println!("four");
+    assert_eq!(
+        simulate_b(
+            &layout(
+                "#.L#.##.L#
+                #L#####.LL
+                L.#.#..#..
+                ##L#.##.##
+                #.##.#L.##
+                #.#####.#L
+                ..#.#.....
+                LLL####LL#
+                #.L#####.L
+                #.L####.L#"
+            )
+        ),
+        layout(
+            "#.L#.L#.L#
+            #LLLLLL.LL
+            L.L.L..#..
+            ##LL.LL.L#
+            L.LL.LL.L#
+            #.LLLLL.LL
+            ..L.L.....
+            LLLLLLLLL#
+            #.LLLLL#.L
+            #.L#LL#.L#"
+        )
+    );
+}
+
+#[test]
+fn smoke_b() {
+    assert_eq!(solve_b("L.LL.LL.LL
+                        LLLLLLL.LL
+                        L.L.L..L..
+                        LLLL.LL.LL
+                        L.LL.LL.LL
+                        L.LLLLL.LL
+                        ..L.L.....
+                        LLLLLLLLLL
+                        L.LLLLLL.L
+                        L.LLLLL.LL"), 26);
 }
